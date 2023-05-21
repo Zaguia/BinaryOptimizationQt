@@ -115,8 +115,9 @@ void algorithms::balas_1959(QTextEdit *qt)
 
     int safety = 0;
     QString r="";
+    bool termination_when_backtrack_is_called = false;
 
-    while(!termination_condition(&selected, vars)){// && !(safety>15)
+    while(true){// && !(safety>15)
 
         bool feasible1 = false;
         bool infeasible = false;
@@ -127,7 +128,12 @@ void algorithms::balas_1959(QTextEdit *qt)
         feasible(&selected,&model, &violated, &current_feasable,&current_feasable_objective_value, vars, constraints);//o2
         feasible1 = violated.size()==0;
         infeasible = backtrack_condition(&selected,&violated,&helpfull,&helpfull_per_constraint,&preference , vars);//o2
+        if(feasible1){infeasible=false;}//for the display
         if(feasible1 || infeasible){
+            termination_when_backtrack_is_called = termination_condition(&selected, vars);
+            if(termination_when_backtrack_is_called){
+                break;
+            }
             backtrack(&selected, vars);//o1
         }else{
             selected.append(helpfull.at(0));
@@ -264,7 +270,7 @@ bool algorithms::backtrack_condition(QList<int> *selected,QList<int> *violated,Q
         }
     }
     //mixing preference and maximum importance
-    if(maximum_importance_id>=0 && maximum_importance>=2){//
+    if(maximum_importance_id>=0 && maximum_importance>helpfull_original[preference->at(0)]){//
         helpfull->append(maximum_importance_id);
     }else{
         maximum_importance_id = -1;
@@ -296,7 +302,7 @@ bool algorithms::termination_condition(QList<int> *selected, int const vars1){
 }
 
 
-void algorithms:: feasible(QList<int> *selected,QList<QList<double>> *model, QList<int> *violated, QList<int> *current_feasable,double *current_feasable_objective_value,int const vars1, int const constraints1){
+void algorithms::feasible(QList<int> *selected,QList<QList<double>> *model, QList<int> *violated, QList<int> *current_feasable,double *current_feasable_objective_value,int const vars1, int const constraints1){
     int const vars = vars1;
     int const constraints = constraints1;
     violated->clear();
