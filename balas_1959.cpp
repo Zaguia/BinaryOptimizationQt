@@ -153,7 +153,7 @@ void balas_1959::solve()//QTextEdit *qt)
         infeasible = backtrack_condition(&selected,&violated,&helpfull,&helpfull_per_constraint,&preference , vars);//o2
         if(feasible1){infeasible=false;}//for the display
 
-        QThread::currentThread()->msleep(500);
+        //QThread::currentThread()->msleep(500);
 
 /*
         r += "\n\nAfter Step "+QString::number(safety)+":::::: \n";

@@ -18,8 +18,6 @@ set(PROJECT_SOURCES
 
         balas_1959.h
         mainwindow.h
-        test.h
-        test.cpp
         main.cpp
         mainwindow.cpp
         balas_1959.cpp
