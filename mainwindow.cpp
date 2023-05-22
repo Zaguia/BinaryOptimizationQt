@@ -1,7 +1,10 @@
 #include "mainwindow.h"
-#include "algorithms.h"
+#include "balas_1959.h"
 #include "./ui_mainwindow.h"
 #include <cmath>
+#include <QtConcurrent>
+
+//balas_1959 *alg;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -60,11 +63,19 @@ void MainWindow::on_solve_clicked()
             -t*(4)/(-35*x[0]-3*x[1]-4*x[2]+10)
             -t*(-5*x[2]+5)/(-5*x[2]*x[2]+5*x[2]); //derivative d/dx2
             */
-    algorithms* alg = new algorithms();
-    alg->balas_1959(ui->solution);
+    //alg = new balas_1959(this);
+    //this->thread()->moveToThread(alg);
+    //alg->moveToThread(this->thread());
+    //alg->set_output(ui->solution);
+    //alg->start();
 
     //QString r = "look at the libraries to test in the notes";
     //ui->solution->setText(r);
+    //alg.solve();
+    connect(&alg,&balas_1959::a_better_feasible_is_found,this,&MainWindow::a_better_feasible_is_found);
+    connect(&alg,&balas_1959::an_optimum_is_found,this,&MainWindow::an_optimum_is_found);
+    connect(this,&MainWindow::on_stop,&alg,&balas_1959::stop);
+    QFuture<void> solve = QtConcurrent::run(&balas_1959::solve,&this->alg);//,add model
 }
 
 void MainWindow::new_function(QLineEdit *bl,QLineEdit *bn,QListWidget *tl){
@@ -79,5 +90,32 @@ void MainWindow::new_function(QLineEdit *bl,QLineEdit *bn,QListWidget *tl){
     for(int i=0;i<n1;i++){
         tl->addItem(l);
     }
+}
+
+
+void MainWindow::on_stop_clicked()
+{
+    emit on_stop();
+}
+
+void MainWindow::a_better_feasible_is_found(QList<int> *current_feasable,double *current_feasable_objective_value){
+    QString r = "";
+    r += "Current solution : ";
+    for(int j=0;j<current_feasable->length();j++){
+        r += QString::number(current_feasable->at(j))+";";
+    }
+    r+= "\nFor a total of : "+QString::number(*current_feasable_objective_value)+"\n";
+    ui->solution->setText(r);
+}
+
+
+void MainWindow::an_optimum_is_found(QList<int> *current_feasable,double *current_feasable_objective_value){
+    QString r = "";
+    r += "Optimal solution : ";
+    for(int j=0;j<current_feasable->length();j++){
+        r += QString::number(current_feasable->at(j))+";";
+    }
+    r+= "\nFor a total of : "+QString::number(*current_feasable_objective_value)+"\n";
+    ui->solution->setText(r);
 }
 

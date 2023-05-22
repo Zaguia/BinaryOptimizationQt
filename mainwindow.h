@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QListWidget>
 #include <QLineEdit>
+#include "balas_1959.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -25,7 +26,18 @@ private slots:
 
     void on_solve_clicked();
 
+    void on_stop_clicked();
+
+public slots :
+
+    void a_better_feasible_is_found(QList<int> *current_feasable,double *current_feasable_objective_value);
+    void an_optimum_is_found(QList<int> *current_feasable,double *current_feasable_objective_value);
+
+ signals :
+    void on_stop();
+
 private:
     Ui::MainWindow *ui;
+    balas_1959 alg;
 };
 #endif // MAINWINDOW_H
