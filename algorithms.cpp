@@ -116,29 +116,29 @@ void algorithms::balas_1959(QTextEdit *qt)
     int safety = 0;
     QString r="";
     bool termination_when_backtrack_is_called = false;
+    bool feasible1 = false;
+    bool infeasible = false;
 
     while(true){// && !(safety>15)
 
-        bool feasible1 = false;
-        bool infeasible = false;
+
         safety++;
 
 
-
-        feasible(&selected,&model, &violated, &current_feasable,&current_feasable_objective_value, vars, constraints);//o2
-        feasible1 = violated.size()==0;
-        infeasible = backtrack_condition(&selected,&violated,&helpfull,&helpfull_per_constraint,&preference , vars);//o2
-        if(feasible1){infeasible=false;}//for the display
         if(feasible1 || infeasible){
             termination_when_backtrack_is_called = termination_condition(&selected, vars);
             if(termination_when_backtrack_is_called){
                 break;
             }
             backtrack(&selected, vars);//o1
-        }else{
+        }else if(helpfull.size()>0) {
             selected.append(helpfull.at(0));
         }
 
+        feasible(&selected,&model, &violated, &current_feasable,&current_feasable_objective_value, vars, constraints);//o2
+        feasible1 = violated.size()==0;
+        infeasible = backtrack_condition(&selected,&violated,&helpfull,&helpfull_per_constraint,&preference , vars);//o2
+        if(feasible1){infeasible=false;}//for the display
 
 
         r += "\n\nAfter Step "+QString::number(safety)+":::::: \n";
@@ -250,13 +250,14 @@ bool algorithms::backtrack_condition(QList<int> *selected,QList<int> *violated,Q
         }
         helpfull_sub_set.clear();
 
-        for(int i=0;i<vars;i++){
-            if(helpfull_original_subset[i]==1){
-                //helpfull_sub_set->append(preference[i]);
-                backtrack=false;//there are still helpfull variables to the current constraint
-            }
-        }
+    }
 
+    //If 1 (NOT ALL) constraint could be helped we continue
+    for(int i=0;i<vars;i++){
+        if(helpfull_original[i]>=1){//violated->size()){
+            //helpfull_sub_set->append(preference[i]);
+            backtrack=false;//there are still helpfull variables to all violated constraints
+        }
     }
 
     int maximum_importance = 0;
