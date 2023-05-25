@@ -21,15 +21,11 @@ public:
 
 private slots:
     void on_eAdd_clicked();
-
     void on_rAdd_clicked();
-
     void on_solve_clicked();
-
     void on_stop_clicked();
 
 public slots :
-
     void a_better_feasible_is_found(QList<int> *current_feasable,double *current_feasable_objective_value);
     void an_optimum_is_found(QList<int> *current_feasable,double *current_feasable_objective_value);
 
@@ -39,5 +35,6 @@ public slots :
 private:
     Ui::MainWindow *ui;
     balas_1959 alg;
+    QList<QList<double>> model;
 };
 #endif // MAINWINDOW_H

@@ -8,12 +8,12 @@ balas_1959::balas_1959(QObject *parent)
 {
     this->stop_all = false;
 }
-/*
-void balas_1959::set_output(QTextEdit *qt_)
+
+void balas_1959::set_model(QList<QList<double>> *model_)
 {
-    qt = qt_;
+    model = model_;
 }
-*/
+
 void balas_1959::stop(){
     this->stop_all = true;
 }
@@ -34,21 +34,12 @@ void balas_1959::solve()//QTextEdit *qt)
 
     //this is an implementation of https://www.youtube.com/watch?v=ajX2PCFt3R4
 
-    //For now we suppose those steps to be done by hand
-    //The test problem is :
-    //min : 5*x1+6*x2+10*x3+7*x4+19*x5;
-    // 5*x1 + x2 + 3*x3 - 4*x4 + 3*x5 >=2;
-    // -2*x1 + 5*x2 - 2*x3 - 3*x4 + 4*x5 >= 0;
-    // x1 - 2*x2 - 5*x3 + 3*x4 + 4*x5 >=2
 
-    int const vars = 5;
-    int const constraints = 4;
+    int const vars = model->at(0).size()-1;
+    int const constraints = model->size();
 
 
-    QList<QList<double>> model{{5 , 6,10, 7,19, 0},
-                               {5 , 1, 3,-4, 3, 2},
-                               {-2, 5,-2,-3, 4, 0},
-                               { 1,-2,-5, 3, 4, 2}};
+
 
 
     //resort variables over a soso index of helpfullness
@@ -62,7 +53,7 @@ void balas_1959::solve()//QTextEdit *qt)
     }
     for(int j=0;j<vars;j++){
         for(int i=1;i<constraints;i++){
-            indecies[j] += model[i][j];
+            indecies[j] += model->at(i).at(j);
         }
     }
 
@@ -101,7 +92,7 @@ void balas_1959::solve()//QTextEdit *qt)
     for(int i=1;i<constraints;i++){
         QList<int> constraint_helpfull_vars;
         for(int j=0;j<vars;j++){
-            if(model[i][preference[j]]>0){
+            if(model->at(i).at(preference[j])>0){
                 constraint_helpfull_vars.append(preference[j]);
             }
         }
@@ -115,7 +106,7 @@ void balas_1959::solve()//QTextEdit *qt)
     QList<int> current_feasable;//positive only
     double current_feasable_objective_value = 1;
     for(int j=0;j<vars;j++){
-        current_feasable_objective_value += model.at(0).at(j);
+        current_feasable_objective_value += model->at(0).at(j);
     }
 
     // Balas logic
@@ -133,7 +124,7 @@ void balas_1959::solve()//QTextEdit *qt)
 
         safety++;
 
-        if(safety==27){
+        if(safety==100){
             continue;
         }
 
@@ -148,9 +139,9 @@ void balas_1959::solve()//QTextEdit *qt)
             selected.append(helpfull.at(0));
         }
 
-        feasible(&selected,&model, &violated, &current_feasable,&current_feasable_objective_value, vars, constraints);//o2
+        feasible(&selected,model, &violated, &current_feasable,&current_feasable_objective_value, vars, constraints, &stop_all);//o2
         feasible1 = violated.size()==0;
-        infeasible = backtrack_condition(&selected,&violated,&helpfull,&helpfull_per_constraint,&preference , vars);//o2
+        infeasible = backtrack_condition(&selected,&violated,&helpfull,&helpfull_per_constraint,&preference , vars, &stop_all);//o2
         if(feasible1){infeasible=false;}//for the display
 
         //QThread::currentThread()->msleep(500);
@@ -226,13 +217,14 @@ void balas_1959::backtrack(QList<int> *selected, const int vars){
 
 }
 
-bool balas_1959::backtrack_condition(QList<int> *selected,QList<int> *violated,QList<int> *helpfull,QList<QList<int>> *helpfull_per_constraint,QList<int> *preference , int const vars){
+bool balas_1959::backtrack_condition(QList<int> *selected,QList<int> *violated,QList<int> *helpfull,QList<QList<int>> *helpfull_per_constraint,QList<int> *preference , int const vars, bool *terminate){
     //remove the helpfull that are put through selection to 0
 
 
     //check that all violated conditions still have a helpfull in o2  time
     QList<int> helpfull_sub_set;
     bool backtrack=true;
+    bool backtrack_due_to_set_0s_canceling_a_constraint_helpfull_vaiabales=false;
     const int vars1 = vars;
     const int vars2 = vars;
     QList<int> helpfull_original;
@@ -243,8 +235,8 @@ bool balas_1959::backtrack_condition(QList<int> *selected,QList<int> *violated,Q
         helpfull_original_subset.append(0);
     }
 
-    for(int i=0;i<violated->size();i++){
-        helpfull_sub_set = helpfull_per_constraint->at(violated->at(i));
+    for(int o=0;o<violated->size();o++){
+        helpfull_sub_set = helpfull_per_constraint->at(violated->at(o));
         //helpfull_original[vars];
 
         for(int i=0;i<vars;i++){
@@ -256,25 +248,80 @@ bool balas_1959::backtrack_condition(QList<int> *selected,QList<int> *violated,Q
             helpfull_original[helpfull_sub_set.at(i)]+=1;//this constraint increments the rating of the variable
         }
 
-        for(int i=0;i<selected->size();i++){
-            //remove any selected
+        /**********new section**********/
+        //terminate if the all the set to 0s at the left canceled a constraint helpfull variables as those won't change
+        int nots_at_the_left_biggest_id = 0;
+        bool next=selected->size()>0;
+        if(next){
+            next = selected->at(nots_at_the_left_biggest_id)>=vars;
+        }
+        while(next){
+            if(selected->at(nots_at_the_left_biggest_id)>=vars){//if 0 is imposed
+                helpfull_original_subset[selected->at(nots_at_the_left_biggest_id)-vars] = 0;
+                helpfull_original[selected->at(nots_at_the_left_biggest_id)-vars]=0;
+            }else{
+                //helpfull_original_subset[selected->at(nots_at_the_left_biggest_id)] = 0;
+                //helpfull_original[selected->at(nots_at_the_left_biggest_id)]=0;
+            }
+            nots_at_the_left_biggest_id++;
+            next=((selected->size()>nots_at_the_left_biggest_id) && (selected->at(nots_at_the_left_biggest_id)>=vars));
+        }
+        bool there_are_helpfull_vars_for_the_current_constraint = false;
+        for(int i=0;i<helpfull_original_subset.length();i++){
+            if(!(helpfull_original_subset[i]==0)){
+                there_are_helpfull_vars_for_the_current_constraint = true;
+            }
+        }
+        *terminate=!there_are_helpfull_vars_for_the_current_constraint;
+        if(*terminate){
+            break;
+        }
+        /******************************/
+
+        for(int i=nots_at_the_left_biggest_id;i<selected->size();i++){//was for(int i = 0... before the new section
             if(selected->at(i)>=vars){//if 0 is imposed
                 helpfull_original_subset[selected->at(i)-vars] = 0;
                 helpfull_original[selected->at(i)-vars]=0;
-            }else{
+            }else{// allredy selected (put to 1)
+                //helpfull_original_subset[selected->at(i)] = 0;
+                //helpfull_original[selected->at(i)]=0;
+            }
+        }
+
+        /**********new section**********/
+        there_are_helpfull_vars_for_the_current_constraint = false;
+        for(int i=0;i<helpfull_original_subset.length();i++){
+            if(!(helpfull_original_subset[i]==0)){
+                there_are_helpfull_vars_for_the_current_constraint = true;
+            }
+        }
+        backtrack_due_to_set_0s_canceling_a_constraint_helpfull_vaiabales=!there_are_helpfull_vars_for_the_current_constraint;
+        if(backtrack_due_to_set_0s_canceling_a_constraint_helpfull_vaiabales){
+            continue;//for debugging
+        }
+        /******************************/
+
+        for(int i=nots_at_the_left_biggest_id;i<selected->size();i++){//wasn't before the new sections
+            //remove any selected
+            if(selected->at(i)<vars){// allredy selected (put to 1)
                 helpfull_original_subset[selected->at(i)] = 0;
                 helpfull_original[selected->at(i)]=0;
             }
         }
+
         helpfull_sub_set.clear();
 
     }
 
-    //If 1 (NOT ALL) constraint could be helped we continue
-    for(int i=0;i<vars;i++){
-        if(helpfull_original[i]>=1){//violated->size()){
-            //helpfull_sub_set->append(preference[i]);
-            backtrack=false;//there are still helpfull variables to all violated constraints
+    /**********new section**********/
+    if(!backtrack_due_to_set_0s_canceling_a_constraint_helpfull_vaiabales){
+    /*******************************/
+        //If 1 (NOT ALL) constraint could be helped we continue
+        for(int i=0;i<vars;i++){
+            if(helpfull_original[i]>=1){//violated->size()){
+                //helpfull_sub_set->append(preference[i]);
+                backtrack=false;//there are still helpfull variables to all violated constraints
+            }
         }
     }
 
@@ -295,7 +342,6 @@ bool balas_1959::backtrack_condition(QList<int> *selected,QList<int> *violated,Q
         maximum_importance_id = -1;
     }
 
-
     for(int i=0;i<vars;i++){
         if((maximum_importance_id != preference->at(i)) && helpfull_original[preference->at(i)]>=1){
             //it is possible to put back the soso preference
@@ -304,7 +350,9 @@ bool balas_1959::backtrack_condition(QList<int> *selected,QList<int> *violated,Q
         }
     }
 
-    if(backtrack){return true;}
+    if(backtrack){
+        return true;
+    }
     return false;
 }
 
@@ -321,7 +369,7 @@ bool balas_1959::termination_condition(QList<int> *selected, int const vars1){
 }
 
 
-void balas_1959::feasible(QList<int> *selected,QList<QList<double>> *model, QList<int> *violated, QList<int> *current_feasable,double *current_feasable_objective_value,int const vars1, int const constraints1){
+void balas_1959::feasible(QList<int> *selected,QList<QList<double>> *model, QList<int> *violated, QList<int> *current_feasable,double *current_feasable_objective_value,int const vars1, int const constraints1, bool *terminate){
     int const vars = vars1;
     int const constraints = constraints1;
     violated->clear();
@@ -354,6 +402,9 @@ void balas_1959::feasible(QList<int> *selected,QList<QList<double>> *model, QLis
             current_feasable->append(selected->at(j));
         }
         *current_feasable_objective_value=may_be_possible_objective_value;
+        if(abs(*current_feasable_objective_value) < 0.000001){
+            *terminate = true;
+        }
         emit a_better_feasible_is_found(current_feasable,current_feasable_objective_value);
     }
 }
