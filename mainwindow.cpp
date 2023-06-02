@@ -142,7 +142,9 @@ void MainWindow::on_solve_clicked()
                                  { 0, 0, 0, 1, 0, 1, 0, 0, 1},  //<=0 for the not selected among requested bars
                                  { 0, 0, 0,-1, 0,-1, 0, 0,-1}}; //<=0 for the not selected among requested bars
 */
+
     //model = model_;
+    first_model = true;
     model.clear();
     //read the ui
     QList<double> existing_bars;
@@ -227,15 +229,7 @@ void MainWindow::on_solve_clicked()
         model.append(lower_equality_constraint);
     }
 
-    //set the objective to maximizing requested bars
-    int first_part = existing_bars.size();
-    int middle_part = existing_bars.size()*requested_bars.size();
-    int last_part = requested_bars.size();
-    for(int i=0;i<first_part; i++){
-        model[0][i] = 0;
-    }
 
-    alg.set_model(&model);
 /*
     QString r="";
     for(int i=0;i<model.size();i++){
@@ -251,7 +245,20 @@ void MainWindow::on_solve_clicked()
     connect(&alg,&balas_1959::a_better_feasible_is_found,this,&MainWindow::a_better_feasible_is_found);
     connect(&alg,&balas_1959::an_optimum_is_found,this,&MainWindow::an_optimum_is_found);
     connect(this,&MainWindow::on_stop,&alg,&balas_1959::stop);
+
+    //set the objective to maximizing requested bars
+    int first_part = existing_bars.size();
+    int middle_part = existing_bars.size()*requested_bars.size();
+    int last_part = requested_bars.size();
+    for(int i=0;i<first_part; i++){
+        model[0][i] = 0;
+    }
+
+    alg.set_model(&model);
     QFuture<void> solve = QtConcurrent::run(&balas_1959::solve,&this->alg);//,add model
+
+    //set the objective to minimizing used bars
+    //first_model = false;
 
 
 
@@ -279,22 +286,77 @@ void MainWindow::on_stop_clicked()
 
 void MainWindow::a_better_feasible_is_found(QList<int> *current_feasable,double *current_feasable_objective_value){
     QString r = "";
-    r += "Current solution : ";
-    for(int j=0;j<current_feasable->length();j++){
-        r += QString::number(current_feasable->at(j))+";";
+    //r += "Current solution : ";
+    //for(int j=0;j<current_feasable->length();j++){
+    //    r += QString::number(current_feasable->at(j))+";";
+    //}
+    //r+= "\nFor a total of : "+QString::number(*current_feasable_objective_value)+"\n";
+
+    //int const vars = model->at(0).size()-1;
+
+    QList<double> existing_bars;
+    int existing_bars_total = ui->eBarList->count();
+    for(int i =0 ; i < existing_bars_total; i++){
+        existing_bars.append(ui->eBarList->item(i)->text().toInt());
     }
-    r+= "\nFor a total of : "+QString::number(*current_feasable_objective_value)+"\n";
+
+    QList<double> requested_bars;
+    int requested_bars_total = ui->rBarList->count();
+    for(int i =0 ; i < requested_bars_total; i++){
+        requested_bars.append(ui->rBarList->item(i)->text().toInt());
+    }
+
+
+    if(first_model){
+        r += "There is a solution for the requested bars: ";
+        int first_part = existing_bars.size();
+        int middle_part = existing_bars.size()*requested_bars.size();
+        int last_part = requested_bars.size();
+        for(int i=first_part+middle_part;i<first_part+middle_part+last_part; i++){
+            if(current_feasable->at(i) == 0){
+                r = r + QString::number(requested_bars.at(i-first_part-middle_part)) + " ";
+            }
+        }
+    }else{
+
+    }
     ui->solution->setText(r);
 }
 
 
 void MainWindow::an_optimum_is_found(QList<int> *current_feasable,double *current_feasable_objective_value){
     QString r = "";
-    r += "Optimal solution : ";
-    for(int j=0;j<current_feasable->length();j++){
-        r += QString::number(current_feasable->at(j))+";";
+    //r += "Optimal solution : ";
+    //for(int j=0;j<current_feasable->length();j++){
+    //    r += QString::number(current_feasable->at(j))+";";
+    //}
+    //r+= "\nFor a total of : "+QString::number(*current_feasable_objective_value)+"\n";
+    QList<double> existing_bars;
+    int existing_bars_total = ui->eBarList->count();
+    for(int i =0 ; i < existing_bars_total; i++){
+        existing_bars.append(ui->eBarList->item(i)->text().toInt());
     }
-    r+= "\nFor a total of : "+QString::number(*current_feasable_objective_value)+"\n";
+
+    QList<double> requested_bars;
+    int requested_bars_total = ui->rBarList->count();
+    for(int i =0 ; i < requested_bars_total; i++){
+        requested_bars.append(ui->rBarList->item(i)->text().toInt());
+    }
+
+
+    if(first_model){
+        r += "There is an optimal solution for the requested bars: ";
+        int first_part = existing_bars.size();
+        int middle_part = existing_bars.size()*requested_bars.size();
+        int last_part = requested_bars.size();
+        for(int i=first_part+middle_part;i<first_part+middle_part+last_part; i++){
+            if(current_feasable->at(i) == 0){
+                r = r + QString::number(requested_bars.at(i-first_part-middle_part)) + " ";
+            }
+        }
+    }else{
+
+    }
     ui->solution->setText(r);
 }
 

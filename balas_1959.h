@@ -23,6 +23,7 @@ private :
     void send_optimum(QList<int> *current_feasable,double *current_feasable_objective_value);
     bool stop_all;
     QList<QList<double>> *model;
+    QList<int> vars_values;
 
 signals :
     void a_better_feasible_is_found(QList<int> *current_feasable,double *current_feasable_objective_value);

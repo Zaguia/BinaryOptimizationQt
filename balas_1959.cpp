@@ -187,7 +187,19 @@ void balas_1959::solve()//QTextEdit *qt)
 */
     }
     //qt->setText(r);
-    send_optimum(&current_feasable,&current_feasable_objective_value);
+    vars_values.clear();
+
+    for(int i=0;i<vars;i++){
+        vars_values.append(0);
+    }
+    for(int i= 0; i<current_feasable.size();i++){
+        if(current_feasable.at(i) >= vars){
+            vars_values[current_feasable.at(i)-vars] = 0;
+        }else{
+            vars_values[current_feasable.at(i)] = 1;
+        }
+    }
+    send_optimum(&vars_values,&current_feasable_objective_value);
     //emit an_optimum_is_found(&current_feasable,&current_feasable_objective_value);
 
 
@@ -405,7 +417,19 @@ void balas_1959::feasible(QList<int> *selected,QList<QList<double>> *model, QLis
         if(abs(*current_feasable_objective_value) < 0.000001){
             *terminate = true;
         }
-        emit a_better_feasible_is_found(current_feasable,current_feasable_objective_value);
+
+        vars_values.clear();
+        for(int i=0;i<vars;i++){
+            vars_values.append(0);
+        }
+        for(int i= 0; i<current_feasable->size();i++){
+            if(current_feasable->at(i) >= vars){
+                vars_values[current_feasable->at(i)-vars] = 0;
+            }else{
+                vars_values[current_feasable->at(i)] = 1;
+            }
+        }
+        emit a_better_feasible_is_found(&vars_values,current_feasable_objective_value);
     }
 }
 

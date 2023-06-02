@@ -36,5 +36,6 @@ private:
     Ui::MainWindow *ui;
     balas_1959 alg;
     QList<QList<double>> model;
+    bool first_model;
 };
 #endif // MAINWINDOW_H
